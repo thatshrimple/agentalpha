@@ -1,0 +1,136 @@
+{
+  "address": "2dAju7NnKZiA7AmBBd2ciU1FWqD7fgMmQGjAKo5ZPKQA",
+  "metadata": {
+    "name": "agentalpha",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "AgentAlpha - Signal Marketplace for AI Agents"
+  },
+  "instructions": [
+    {
+      "name": "commit_signal",
+      "discriminator": [137, 14, 98, 40, 102, 88, 98, 135],
+      "accounts": [
+        { "name": "signal_commit", "writable": true, "pda": { "seeds": [{ "kind": "const", "value": [115, 105, 103, 110, 97, 108] }, { "kind": "account", "path": "provider" }, { "kind": "arg", "path": "signal_hash" }] } },
+        { "name": "provider", "pda": { "seeds": [{ "kind": "const", "value": [112, 114, 111, 118, 105, 100, 101, 114] }, { "kind": "account", "path": "authority" }] } },
+        { "name": "authority", "writable": true, "signer": true, "relations": ["provider"] },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": [{ "name": "signal_hash", "type": { "array": ["u8", 32] } }]
+    },
+    {
+      "name": "record_outcome",
+      "discriminator": [130, 121, 6, 102, 151, 160, 252, 6],
+      "accounts": [
+        { "name": "signal_commit", "writable": true },
+        { "name": "provider", "writable": true },
+        { "name": "oracle", "signer": true }
+      ],
+      "args": [
+        { "name": "price_at_evaluation", "type": "u64" },
+        { "name": "was_correct", "type": "bool" },
+        { "name": "return_bps", "type": "i32" }
+      ]
+    },
+    {
+      "name": "register_provider",
+      "discriminator": [254, 209, 54, 184, 46, 197, 109, 78],
+      "accounts": [
+        { "name": "provider", "writable": true, "pda": { "seeds": [{ "kind": "const", "value": [112, 114, 111, 118, 105, 100, 101, 114] }, { "kind": "account", "path": "authority" }] } },
+        { "name": "authority", "writable": true, "signer": true },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": [
+        { "name": "name", "type": "string" },
+        { "name": "endpoint", "type": "string" },
+        { "name": "categories", "type": "bytes" },
+        { "name": "price_lamports", "type": "u64" }
+      ]
+    },
+    {
+      "name": "reveal_signal",
+      "discriminator": [224, 171, 21, 85, 195, 253, 227, 240],
+      "accounts": [
+        { "name": "signal_commit", "writable": true },
+        { "name": "provider", "pda": { "seeds": [{ "kind": "const", "value": [112, 114, 111, 118, 105, 100, 101, 114] }, { "kind": "account", "path": "authority" }] } },
+        { "name": "authority", "signer": true, "relations": ["provider"] }
+      ],
+      "args": [
+        { "name": "token", "type": "string" },
+        { "name": "direction", "type": "u8" },
+        { "name": "confidence", "type": "u8" },
+        { "name": "price_at_signal", "type": "u64" }
+      ]
+    },
+    {
+      "name": "update_provider",
+      "discriminator": [52, 208, 141, 191, 164, 54, 108, 150],
+      "accounts": [
+        { "name": "provider", "writable": true, "pda": { "seeds": [{ "kind": "const", "value": [112, 114, 111, 118, 105, 100, 101, 114] }, { "kind": "account", "path": "authority" }] } },
+        { "name": "authority", "signer": true, "relations": ["provider"] }
+      ],
+      "args": [
+        { "name": "name", "type": { "option": "string" } },
+        { "name": "endpoint", "type": { "option": "string" } },
+        { "name": "price_lamports", "type": { "option": "u64" } }
+      ]
+    }
+  ],
+  "accounts": [
+    { "name": "Provider", "discriminator": [164, 180, 71, 17, 75, 216, 80, 195] },
+    { "name": "SignalCommit", "discriminator": [244, 78, 83, 68, 249, 101, 209, 198] }
+  ],
+  "errors": [
+    { "code": 6000, "name": "NameTooLong", "msg": "Provider name too long (max 64 chars)" },
+    { "code": 6001, "name": "EndpointTooLong", "msg": "Endpoint URL too long (max 256 chars)" },
+    { "code": 6002, "name": "TooManyCategories", "msg": "Too many categories (max 8)" },
+    { "code": 6003, "name": "AlreadyRevealed", "msg": "Signal already revealed" },
+    { "code": 6004, "name": "NotRevealed", "msg": "Signal not revealed yet" },
+    { "code": 6005, "name": "HashMismatch", "msg": "Hash mismatch - revealed data doesn't match commit" },
+    { "code": 6006, "name": "OutcomeAlreadyRecorded", "msg": "Outcome already recorded for this signal" }
+  ],
+  "types": [
+    {
+      "name": "Provider",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "authority", "type": "pubkey" },
+          { "name": "name", "type": "string" },
+          { "name": "endpoint", "type": "string" },
+          { "name": "categories", "type": "bytes" },
+          { "name": "price_lamports", "type": "u64" },
+          { "name": "total_signals", "type": "u64" },
+          { "name": "correct_signals", "type": "u64" },
+          { "name": "total_return_bps", "type": "i64" },
+          { "name": "created_at", "type": "i64" },
+          { "name": "updated_at", "type": "i64" },
+          { "name": "bump", "type": "u8" }
+        ]
+      }
+    },
+    {
+      "name": "SignalCommit",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "provider", "type": "pubkey" },
+          { "name": "signal_hash", "type": { "array": ["u8", 32] } },
+          { "name": "committed_at", "type": "i64" },
+          { "name": "revealed", "type": "bool" },
+          { "name": "outcome_recorded", "type": "bool" },
+          { "name": "token", "type": "string" },
+          { "name": "direction", "type": "u8" },
+          { "name": "confidence", "type": "u8" },
+          { "name": "price_at_signal", "type": "u64" },
+          { "name": "revealed_at", "type": "i64" },
+          { "name": "price_at_evaluation", "type": "u64" },
+          { "name": "was_correct", "type": "bool" },
+          { "name": "return_bps", "type": "i32" },
+          { "name": "evaluated_at", "type": "i64" },
+          { "name": "bump", "type": "u8" }
+        ]
+      }
+    }
+  ]
+}

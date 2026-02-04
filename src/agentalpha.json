@@ -1,0 +1,489 @@
+{
+  "address": "AgentA1phaSigna1Marketp1ace11111111111111111",
+  "metadata": {
+    "name": "agentalpha",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "commit_signal",
+      "docs": [
+        "Commit a signal (store hash before revealing)"
+      ],
+      "discriminator": [
+        137,
+        14,
+        98,
+        40,
+        102,
+        88,
+        98,
+        135
+      ],
+      "accounts": [
+        {
+          "name": "signal_commit",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  105,
+                  103,
+                  110,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "provider"
+              },
+              {
+                "kind": "arg",
+                "path": "signal_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "provider",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  118,
+                  105,
+                  100,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "provider"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "signal_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "record_outcome",
+      "docs": [
+        "Record signal outcome (called by oracle)"
+      ],
+      "discriminator": [
+        130,
+        121,
+        6,
+        102,
+        151,
+        160,
+        252,
+        6
+      ],
+      "accounts": [
+        {
+          "name": "signal_commit",
+          "writable": true
+        },
+        {
+          "name": "provider",
+          "writable": true
+        },
+        {
+          "name": "oracle",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "was_correct",
+          "type": "bool"
+        },
+        {
+          "name": "return_bps",
+          "type": "i32"
+        }
+      ]
+    },
+    {
+      "name": "register_provider",
+      "docs": [
+        "Register a new signal provider"
+      ],
+      "discriminator": [
+        254,
+        209,
+        54,
+        184,
+        46,
+        197,
+        109,
+        78
+      ],
+      "accounts": [
+        {
+          "name": "provider",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  118,
+                  105,
+                  100,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "endpoint",
+          "type": "string"
+        },
+        {
+          "name": "categories",
+          "type": "bytes"
+        },
+        {
+          "name": "price_lamports",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Provider",
+      "discriminator": [
+        164,
+        180,
+        71,
+        17,
+        75,
+        216,
+        80,
+        195
+      ]
+    },
+    {
+      "name": "SignalCommit",
+      "discriminator": [
+        244,
+        78,
+        83,
+        68,
+        249,
+        101,
+        209,
+        198
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "OutcomeRecorded",
+      "discriminator": [
+        4,
+        69,
+        202,
+        1,
+        151,
+        45,
+        204,
+        96
+      ]
+    },
+    {
+      "name": "ProviderRegistered",
+      "discriminator": [
+        38,
+        209,
+        137,
+        78,
+        185,
+        19,
+        147,
+        14
+      ]
+    },
+    {
+      "name": "SignalCommitted",
+      "discriminator": [
+        161,
+        123,
+        152,
+        15,
+        6,
+        15,
+        175,
+        153
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "NameTooLong",
+      "msg": "Name too long (max 64)"
+    },
+    {
+      "code": 6001,
+      "name": "EndpointTooLong",
+      "msg": "Endpoint too long (max 256)"
+    },
+    {
+      "code": 6002,
+      "name": "TooManyCategories",
+      "msg": "Too many categories (max 8)"
+    },
+    {
+      "code": 6003,
+      "name": "OutcomeAlreadyRecorded",
+      "msg": "Outcome already recorded"
+    }
+  ],
+  "types": [
+    {
+      "name": "OutcomeRecorded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "provider",
+            "type": "pubkey"
+          },
+          {
+            "name": "signal_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "was_correct",
+            "type": "bool"
+          },
+          {
+            "name": "return_bps",
+            "type": "i32"
+          },
+          {
+            "name": "hit_rate_bps",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Provider",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "endpoint",
+            "type": "string"
+          },
+          {
+            "name": "categories",
+            "type": "bytes"
+          },
+          {
+            "name": "price_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "total_signals",
+            "type": "u64"
+          },
+          {
+            "name": "correct_signals",
+            "type": "u64"
+          },
+          {
+            "name": "total_return_bps",
+            "type": "i64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "updated_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProviderRegistered",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "provider",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "endpoint",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SignalCommit",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "provider",
+            "type": "pubkey"
+          },
+          {
+            "name": "signal_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "committed_at",
+            "type": "i64"
+          },
+          {
+            "name": "revealed",
+            "type": "bool"
+          },
+          {
+            "name": "outcome_recorded",
+            "type": "bool"
+          },
+          {
+            "name": "was_correct",
+            "type": "bool"
+          },
+          {
+            "name": "return_bps",
+            "type": "i32"
+          },
+          {
+            "name": "evaluated_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SignalCommitted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "provider",
+            "type": "pubkey"
+          },
+          {
+            "name": "signal_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "committed_at",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ]
+}

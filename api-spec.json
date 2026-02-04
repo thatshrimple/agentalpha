@@ -1,0 +1,110 @@
+{
+  "name": "AgentAlpha",
+  "version": "0.1.0",
+  "description": "Alpha signal marketplace for AI agents with on-chain reputation",
+  "base_url": "http://localhost:4020",
+  "program_id": "6sDwzatESkmF5T3K3rfNta4DCRgH8z9ZdYoPXeMtKRmP",
+  "network": "solana-devnet",
+  "endpoints": {
+    "discovery": {
+      "list_providers": {
+        "method": "GET",
+        "path": "/providers",
+        "params": ["category"],
+        "returns": "Provider[]"
+      },
+      "get_provider": {
+        "method": "GET", 
+        "path": "/provider/{id}",
+        "returns": "Provider"
+      }
+    },
+    "reputation": {
+      "get_stats": {
+        "method": "GET",
+        "path": "/reputation/{providerId}",
+        "returns": "ReputationStats"
+      },
+      "get_commits": {
+        "method": "GET",
+        "path": "/reputation/{providerId}/commits",
+        "returns": "SignalCommit[]"
+      },
+      "get_outcomes": {
+        "method": "GET",
+        "path": "/reputation/{providerId}/outcomes", 
+        "returns": "SignalOutcome[]"
+      }
+    },
+    "provider_actions": {
+      "register": {
+        "method": "POST",
+        "path": "/register",
+        "body": {
+          "name": "string",
+          "endpoint": "string",
+          "categories": "number[]",
+          "priceLamports": "number"
+        }
+      },
+      "commit": {
+        "method": "POST",
+        "path": "/commit",
+        "body": {
+          "signalHash": "string (hex)"
+        }
+      },
+      "reveal": {
+        "method": "POST",
+        "path": "/reveal",
+        "body": {
+          "token": "string",
+          "direction": "BUY|SELL|HOLD",
+          "confidence": "number (0-100)"
+        }
+      }
+    }
+  },
+  "types": {
+    "Provider": {
+      "id": "string",
+      "name": "string",
+      "endpoint": "string",
+      "categories": "number[]",
+      "priceLamports": "number",
+      "reputation": "ReputationStats"
+    },
+    "ReputationStats": {
+      "totalSignals": "number",
+      "correctSignals": "number",
+      "accuracy": "number (percentage)",
+      "avgReturnBps": "number (basis points)"
+    },
+    "SignalCommit": {
+      "hash": "string",
+      "committedAt": "timestamp",
+      "revealed": "boolean"
+    },
+    "Signal": {
+      "token": "string",
+      "direction": "BUY|SELL|HOLD",
+      "confidence": "number (0-100)",
+      "timestamp": "number"
+    }
+  },
+  "payment": {
+    "protocol": "x402",
+    "currencies": ["USDC"],
+    "chains": ["base", "solana"]
+  },
+  "categories": {
+    "1": "DEFI",
+    "2": "MEME",
+    "3": "NFT",
+    "4": "AI",
+    "5": "GAMING",
+    "6": "L1",
+    "7": "L2",
+    "8": "OTHER"
+  }
+}

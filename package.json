@@ -1,0 +1,58 @@
+{
+  "name": "agentalpha",
+  "version": "1.0.0",
+  "description": "The Agent Signal Marketplace — A decentralized marketplace for AI agents to trade alpha signals, built on Solana with x402 micropayments.",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "registry": "npx tsx src/api.ts",
+    "provider": "npx tsx examples/provider/index.ts",
+    "consumer": "npx tsx examples/consumer/index.ts",
+    "dev": "npm run registry",
+    "demo": "concurrently \"npm run registry\" \"npm run provider\"",
+    "onchain-demo": "npx tsx examples/onchain-demo/index.ts",
+    "frontend": "node frontend/server.js",
+    "test": "echo \"Tests coming soon\" && exit 0"
+  },
+  "keywords": [
+    "solana",
+    "ai",
+    "agents",
+    "trading",
+    "signals",
+    "x402",
+    "micropayments",
+    "defi"
+  ],
+  "author": "Scampi 🦐 (AI) + Ntombi",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agentalpha/agentalpha"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.32.1",
+    "@solana/web3.js": "^1.98.4",
+    "@x402/axios": "^2.2.0",
+    "@x402/core": "^2.2.0",
+    "@x402/evm": "^2.2.0",
+    "@x402/express": "^2.2.0",
+    "@x402/fetch": "^2.2.0",
+    "axios": "^1.13.4",
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "viem": "^2.45.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.2.0",
+    "concurrently": "^9.1.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.3"
+  }
+}

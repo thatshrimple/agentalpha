@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+target/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Keypairs and secrets - NEVER commit these!
+*-keypair.json
+demo-keypair.json
+*.pem
+secrets/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Anchor
+.anchor/
+test-ledger/
