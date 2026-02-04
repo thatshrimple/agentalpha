@@ -10,6 +10,7 @@ import cors from 'cors';
 import { registry } from './registry.js';
 import { reputationTracker } from './reputation.js';
 import { onchainSync } from './onchain-sync.js';
+import signalApi from './signal-api.js';
 import type { Provider, ProviderSearchParams, SignalCategory, Signal } from './types.js';
 import dotenv from 'dotenv';
 
@@ -18,6 +19,9 @@ dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Mount signal submission API
+app.use('/signals', signalApi);
 
 const PORT = process.env.REGISTRY_PORT || 4020;
 const ENABLE_ONCHAIN_SYNC = process.env.ENABLE_ONCHAIN_SYNC !== 'false';
