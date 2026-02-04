@@ -69,8 +69,10 @@ export class OnChainSync {
         avgReturn,
         hitRate,
         avgConfidence: 0, // Not tracked on-chain
+        lastUpdated: Date.now(),
       },
       onChainAuthority: onchain.authority.toBase58(),
+      updatedAt: Date.now(),
     };
   }
 

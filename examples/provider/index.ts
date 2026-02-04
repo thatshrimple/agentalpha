@@ -147,7 +147,8 @@ app.get('/signal/latest', paywall, async (req, res) => {
 
 // Get signal by ID (PAID)
 app.get('/signal/:id', paywall, (req, res) => {
-  const signal = signalHistory.get(req.params.id);
+  const signalId = req.params.id as string;
+  const signal = signalHistory.get(signalId);
   if (!signal) {
     return res.status(404).json({ error: 'Signal not found' });
   }
