@@ -6,6 +6,7 @@
   "types": "dist/src/index.d.ts",
   "type": "module",
   "scripts": {
+    "start": "npx tsx src/api.ts",
     "build": "tsc",
     "registry": "npx tsx src/api.ts",
     "provider": "npx tsx examples/provider/index.ts",
@@ -15,6 +16,9 @@
     "onchain-demo": "npx tsx examples/onchain-demo/index.ts",
     "frontend": "node frontend/server.js",
     "test": "echo \"Tests coming soon\" && exit 0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "keywords": [
     "solana",

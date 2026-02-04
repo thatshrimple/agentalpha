@@ -23,7 +23,7 @@ app.use(express.json());
 // Mount signal submission API
 app.use('/signals', signalApi);
 
-const PORT = process.env.REGISTRY_PORT || 4020;
+const PORT = process.env.PORT || process.env.REGISTRY_PORT || 4020;
 const ENABLE_ONCHAIN_SYNC = process.env.ENABLE_ONCHAIN_SYNC !== 'false';
 
 // ========== ROUTES ==========
