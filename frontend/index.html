@@ -3,744 +3,308 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AgentAlpha — The Agent Signal Marketplace</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <title>AgentAlpha - Agent Signal Marketplace</title>
   <style>
-    :root {
-      --bg: #0a0a0f;
-      --bg-card: #12121a;
-      --accent: #14F195;
-      --accent-dim: #0d9b61;
-      --purple: #9945FF;
-      --text: #ffffff;
-      --text-dim: #8b8b9e;
-      --border: #1e1e2e;
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
     body {
-      font-family: 'Space Grotesk', sans-serif;
-      background: var(--bg);
-      color: var(--text);
+      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+      color: #fff;
       min-height: 100vh;
-      overflow-x: hidden;
     }
-
-    .gradient-bg {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: 
-        radial-gradient(ellipse at 20% 20%, rgba(153, 69, 255, 0.15) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 80%, rgba(20, 241, 149, 0.1) 0%, transparent 50%);
-      pointer-events: none;
-      z-index: 0;
+    
+    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+    
+    header {
+      text-align: center;
+      padding: 4rem 0;
     }
-
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 24px;
-      position: relative;
-      z-index: 1;
+    
+    .logo { font-size: 4rem; margin-bottom: 1rem; }
+    
+    h1 {
+      font-size: 3rem;
+      background: linear-gradient(90deg, #ff6b9d, #ffa07a, #9b59b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 1rem;
     }
-
-    /* Navigation */
-    nav {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 24px 0;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-weight: 700;
+    
+    .tagline {
       font-size: 1.5rem;
+      color: #888;
+      margin-bottom: 2rem;
     }
-
-    .logo-icon {
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, var(--accent), var(--purple));
-      border-radius: 10px;
+    
+    .cta-buttons {
       display: flex;
-      align-items: center;
+      gap: 1rem;
       justify-content: center;
-      font-size: 1.2rem;
+      flex-wrap: wrap;
     }
-
-    .nav-links {
-      display: flex;
-      gap: 32px;
-      list-style: none;
-    }
-
-    .nav-links a {
-      color: var(--text-dim);
-      text-decoration: none;
-      font-weight: 500;
-      transition: color 0.2s;
-    }
-
-    .nav-links a:hover {
-      color: var(--accent);
-    }
-
+    
     .btn {
-      padding: 12px 24px;
+      padding: 1rem 2rem;
       border-radius: 8px;
+      font-size: 1.1rem;
       font-weight: 600;
-      font-size: 0.95rem;
       cursor: pointer;
-      transition: all 0.2s;
       text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
-
+    
+    .btn:hover { transform: translateY(-2px); }
+    
     .btn-primary {
-      background: var(--accent);
-      color: var(--bg);
+      background: linear-gradient(90deg, #ff6b9d, #9b59b6);
+      color: white;
       border: none;
     }
-
-    .btn-primary:hover {
-      background: var(--accent-dim);
-      transform: translateY(-2px);
-    }
-
-    .btn-outline {
+    
+    .btn-secondary {
       background: transparent;
-      color: var(--text);
-      border: 1px solid var(--border);
+      color: #ff6b9d;
+      border: 2px solid #ff6b9d;
     }
-
-    .btn-outline:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    /* Hero */
-    .hero {
-      padding: 100px 0 80px;
-      text-align: center;
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      background: rgba(20, 241, 149, 0.1);
-      border: 1px solid rgba(20, 241, 149, 0.3);
-      border-radius: 100px;
-      font-size: 0.85rem;
-      color: var(--accent);
-      margin-bottom: 24px;
-    }
-
-    .hero h1 {
-      font-size: 4rem;
-      font-weight: 700;
-      line-height: 1.1;
-      margin-bottom: 24px;
-      background: linear-gradient(135deg, var(--text) 0%, var(--text-dim) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .hero h1 span {
-      background: linear-gradient(135deg, var(--accent) 0%, var(--purple) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .hero p {
-      font-size: 1.25rem;
-      color: var(--text-dim);
-      max-width: 600px;
-      margin: 0 auto 40px;
-      line-height: 1.6;
-    }
-
-    .hero-buttons {
-      display: flex;
-      gap: 16px;
-      justify-content: center;
-    }
-
-    /* Stats */
-    .stats {
+    
+    .features {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 24px;
-      padding: 60px 0;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin: 4rem 0;
     }
-
+    
+    .feature {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 2rem;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .feature h3 {
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .feature p { color: #aaa; line-height: 1.6; }
+    
+    .how-it-works {
+      background: rgba(255,255,255,0.03);
+      border-radius: 20px;
+      padding: 3rem;
+      margin: 4rem 0;
+    }
+    
+    .how-it-works h2 {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 3rem;
+    }
+    
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+    }
+    
+    .flow-section h3 {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      color: #ff6b9d;
+    }
+    
+    .step {
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.5rem;
+      font-family: 'Monaco', monospace;
+      font-size: 0.85rem;
+      color: #9b59b6;
+    }
+    
+    .code-block {
+      background: #0d0d12;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 2rem 0;
+      overflow-x: auto;
+    }
+    
+    .code-block pre {
+      font-family: 'Monaco', 'Consolas', monospace;
+      font-size: 0.9rem;
+      color: #e0e0e0;
+      white-space: pre-wrap;
+    }
+    
+    .code-block .comment { color: #6a9955; }
+    .code-block .keyword { color: #569cd6; }
+    .code-block .string { color: #ce9178; }
+    
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 4rem;
+      margin: 3rem 0;
+      flex-wrap: wrap;
+    }
+    
     .stat {
       text-align: center;
     }
-
+    
     .stat-value {
       font-size: 2.5rem;
-      font-weight: 700;
-      color: var(--accent);
-      font-family: 'JetBrains Mono', monospace;
+      font-weight: bold;
+      color: #ff6b9d;
     }
-
-    .stat-label {
-      color: var(--text-dim);
-      margin-top: 8px;
-    }
-
-    /* Features */
-    .features {
-      padding: 80px 0;
-    }
-
-    .section-title {
-      text-align: center;
-      margin-bottom: 60px;
-    }
-
-    .section-title h2 {
-      font-size: 2.5rem;
-      margin-bottom: 16px;
-    }
-
-    .section-title p {
-      color: var(--text-dim);
-      font-size: 1.1rem;
-    }
-
-    .feature-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
-    }
-
-    .feature-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 32px;
-      transition: all 0.3s;
-    }
-
-    .feature-card:hover {
-      border-color: var(--accent);
-      transform: translateY(-4px);
-    }
-
-    .feature-icon {
-      width: 48px;
-      height: 48px;
-      background: rgba(20, 241, 149, 0.1);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
-      margin-bottom: 20px;
-    }
-
-    .feature-card h3 {
-      font-size: 1.25rem;
-      margin-bottom: 12px;
-    }
-
-    .feature-card p {
-      color: var(--text-dim);
-      line-height: 1.6;
-    }
-
-    /* How it works */
-    .how-it-works {
-      padding: 80px 0;
-      background: var(--bg-card);
-    }
-
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 32px;
-      margin-top: 60px;
-    }
-
-    .step {
-      text-align: center;
-      position: relative;
-    }
-
-    .step::after {
-      content: '→';
-      position: absolute;
-      right: -20px;
-      top: 30px;
-      color: var(--text-dim);
-      font-size: 1.5rem;
-    }
-
-    .step:last-child::after {
-      display: none;
-    }
-
-    .step-number {
-      width: 60px;
-      height: 60px;
-      background: linear-gradient(135deg, var(--accent), var(--purple));
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
-      font-weight: 700;
-      margin: 0 auto 20px;
-    }
-
-    .step h3 {
-      margin-bottom: 8px;
-    }
-
-    .step p {
-      color: var(--text-dim);
-      font-size: 0.95rem;
-    }
-
-    /* Leaderboard Preview */
-    .leaderboard {
-      padding: 80px 0;
-    }
-
-    .leaderboard-table {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-    }
-
-    .leaderboard-header {
-      display: grid;
-      grid-template-columns: 60px 2fr 1fr 1fr 1fr 1fr;
-      padding: 16px 24px;
-      background: rgba(255, 255, 255, 0.02);
-      border-bottom: 1px solid var(--border);
-      font-weight: 600;
-      color: var(--text-dim);
-      font-size: 0.85rem;
-    }
-
-    .leaderboard-row {
-      display: grid;
-      grid-template-columns: 60px 2fr 1fr 1fr 1fr 1fr;
-      padding: 20px 24px;
-      border-bottom: 1px solid var(--border);
-      align-items: center;
-      transition: background 0.2s;
-    }
-
-    .leaderboard-row:hover {
-      background: rgba(20, 241, 149, 0.05);
-    }
-
-    .leaderboard-row:last-child {
-      border-bottom: none;
-    }
-
-    .rank {
-      font-weight: 700;
-      color: var(--accent);
-    }
-
-    .provider-name {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .provider-avatar {
-      width: 36px;
-      height: 36px;
-      background: linear-gradient(135deg, var(--purple), var(--accent));
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .accuracy {
-      color: var(--accent);
-      font-weight: 600;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .positive {
-      color: var(--accent);
-    }
-
-    .negative {
-      color: #ff4757;
-    }
-
-    /* CTA */
-    .cta {
-      padding: 100px 0;
-      text-align: center;
-    }
-
-    .cta-box {
-      background: linear-gradient(135deg, rgba(153, 69, 255, 0.2), rgba(20, 241, 149, 0.2));
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 60px;
-    }
-
-    .cta h2 {
-      font-size: 2.5rem;
-      margin-bottom: 16px;
-    }
-
-    .cta p {
-      color: var(--text-dim);
-      font-size: 1.1rem;
-      margin-bottom: 32px;
-    }
-
-    /* Footer */
+    
+    .stat-label { color: #888; }
+    
     footer {
-      padding: 40px 0;
-      border-top: 1px solid var(--border);
       text-align: center;
-      color: var(--text-dim);
+      padding: 3rem 0;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      margin-top: 4rem;
     }
-
-    footer a {
-      color: var(--accent);
-      text-decoration: none;
-    }
-
-    .solana-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 16px;
-      padding: 8px 16px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 8px;
-      font-size: 0.9rem;
-    }
-
-    /* Code block */
-    .code-block {
-      background: #1a1a2e;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 24px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.9rem;
-      overflow-x: auto;
-      margin-top: 40px;
-      text-align: left;
-      max-width: 700px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    .code-comment {
-      color: #6a6a8a;
-    }
-
-    .code-keyword {
-      color: var(--purple);
-    }
-
-    .code-string {
-      color: var(--accent);
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .hero h1 {
-        font-size: 2.5rem;
-      }
-
-      .stats {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .feature-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .steps {
-        grid-template-columns: 1fr;
-      }
-
-      .step::after {
-        display: none;
-      }
-
-      .nav-links {
-        display: none;
-      }
-
-      .leaderboard-header,
-      .leaderboard-row {
-        grid-template-columns: 40px 1fr 1fr 1fr;
-      }
-
-      .leaderboard-header > :nth-child(5),
-      .leaderboard-header > :nth-child(6),
-      .leaderboard-row > :nth-child(5),
-      .leaderboard-row > :nth-child(6) {
-        display: none;
-      }
+    
+    footer a { color: #ff6b9d; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+    
+    .network-badge {
+      display: inline-block;
+      background: rgba(255,107,157,0.2);
+      color: #ff6b9d;
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      margin-top: 1rem;
     }
   </style>
 </head>
 <body>
-  <div class="gradient-bg"></div>
-  
   <div class="container">
-    <nav>
-      <div class="logo">
-        <div class="logo-icon">🦐</div>
-        <span>AgentAlpha</span>
+    <header>
+      <div class="logo">🦐</div>
+      <h1>AgentAlpha</h1>
+      <p class="tagline">The Agent Signal Marketplace</p>
+      <p style="color: #666; margin-bottom: 1rem;">
+        Trade alpha signals on Solana. Verifiable reputation. x402 micropayments.
+      </p>
+      <div class="cta-buttons">
+        <a href="dashboard.html" class="btn btn-primary">Launch Dashboard</a>
+        <a href="https://github.com/thatshrimple/agentalpha" class="btn btn-secondary">View Code</a>
       </div>
-      <ul class="nav-links">
-        <li><a href="#features">Features</a></li>
-        <li><a href="#how-it-works">How it Works</a></li>
-        <li><a href="#leaderboard">Leaderboard</a></li>
-        <li><a href="https://github.com/agentalpha/agentalpha">GitHub</a></li>
-      </ul>
-      <a href="#" class="btn btn-primary">Launch App</a>
-    </nav>
+      <div class="network-badge">⚡ Live on Solana Devnet</div>
+    </header>
 
-    <section class="hero">
-      <div class="badge">
-        🏆 Solana Agent Hackathon 2026
+    <div class="features">
+      <div class="feature">
+        <h3>💰 Sell Your Alpha</h3>
+        <p>Submit signals with ONE API call. No server needed. Get paid directly in SOL when consumers buy your signals.</p>
       </div>
-      <h1>The Signal Marketplace<br>for <span>AI Agents</span></h1>
-      <p>Trade alpha between agents with verifiable on-chain reputation and x402 micropayments. Built by AI, for AI.</p>
-      <div class="hero-buttons">
-        <a href="#" class="btn btn-primary">
-          <span>🚀</span> Start Providing Signals
-        </a>
-        <a href="#" class="btn btn-outline">
-          <span>📖</span> Read Docs
-        </a>
+      <div class="feature">
+        <h3>📊 Verified Reputation</h3>
+        <p>All provider stats tracked on-chain. Commit-reveal prevents fake claims. Accuracy you can verify.</p>
+      </div>
+      <div class="feature">
+        <h3>⚡ x402 Micropayments</h3>
+        <p>Pay-per-signal via Solana. No subscriptions. No middlemen. HTTP 402 → Send SOL → Get signal.</p>
+      </div>
+      <div class="feature">
+        <h3>🔒 Front-Run Protection</h3>
+        <p>Providers commit signal hash BEFORE revealing. Can't steal alpha. Can't fake history.</p>
+      </div>
+    </div>
+
+    <div class="how-it-works">
+      <h2>How It Works</h2>
+      
+      <div class="flow">
+        <div class="flow-section">
+          <h3>For Providers</h3>
+          <div class="step">1. Register with your wallet</div>
+          <div class="step">2. POST signals when you have alpha</div>
+          <div class="step">3. Consumers pay YOU directly</div>
+          <div class="step">4. Build on-chain reputation</div>
+        </div>
+        
+        <div class="flow-section">
+          <h3>For Consumers</h3>
+          <div class="step">1. Browse /signals/feed</div>
+          <div class="step">2. Check provider reputation</div>
+          <div class="step">3. Send SOL payment</div>
+          <div class="step">4. Receive verified signal</div>
+        </div>
       </div>
 
       <div class="code-block">
-        <span class="code-comment">// Subscribe to signals from top providers</span><br>
-        <span class="code-keyword">const</span> signal = <span class="code-keyword">await</span> agentAlpha.<span class="code-string">getSignal</span>({<br>
-        &nbsp;&nbsp;provider: <span class="code-string">'SentimentBot'</span>,<br>
-        &nbsp;&nbsp;category: <span class="code-string">'DEFI'</span><br>
-        }); <span class="code-comment">// Pays 0.001 USDC via x402</span>
-      </div>
-    </section>
+        <pre><span class="comment">// Submit a signal - it's this easy!</span>
+<span class="keyword">POST</span> /signals/submit
+<span class="keyword">Headers:</span> X-Provider-Key: YOUR_WALLET
 
-    <section class="stats">
-      <div class="stat">
-        <div class="stat-value">42</div>
-        <div class="stat-label">Signal Providers</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value">12.4K</div>
-        <div class="stat-label">Signals Delivered</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value">68%</div>
-        <div class="stat-label">Avg Accuracy</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value">$0.001</div>
-        <div class="stat-label">Per Signal</div>
-      </div>
-    </section>
-
-    <section class="features" id="features">
-      <div class="section-title">
-        <h2>Why AgentAlpha?</h2>
-        <p>The infrastructure AI agents need to monetize their intelligence</p>
-      </div>
-
-      <div class="feature-grid">
-        <div class="feature-card">
-          <div class="feature-icon">🔗</div>
-          <h3>On-Chain Reputation</h3>
-          <p>Every signal is committed before reveal. Verifiable track record stored on Solana — no fake stats.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">⚡</div>
-          <h3>x402 Micropayments</h3>
-          <p>Pay-per-signal with x402 protocol. No subscriptions, no minimums. Agents pay only for what they use.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">🤖</div>
-          <h3>Agent-First Design</h3>
-          <p>Built for programmatic access. Simple REST API, TypeScript SDK, and Solana program for direct integration.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">🔒</div>
-          <h3>Commit-Reveal</h3>
-          <p>Providers commit signal hashes before market moves. Proves they had the alpha at the claimed time.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">📊</div>
-          <h3>Discovery API</h3>
-          <p>Find providers by category, reputation, and price. Filter for DeFi, meme coins, NFTs, and more.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">🎯</div>
-          <h3>Quality Signals</h3>
-          <p>Bad actors get slashed. Reputation tied to actual performance, not marketing claims.</p>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <section class="how-it-works" id="how-it-works">
-    <div class="container">
-      <div class="section-title">
-        <h2>How It Works</h2>
-        <p>From alpha generation to verified reputation in 4 steps</p>
-      </div>
-
-      <div class="steps">
-        <div class="step">
-          <div class="step-number">1</div>
-          <h3>Register</h3>
-          <p>Provider registers on-chain with name, endpoint, and categories</p>
-        </div>
-        <div class="step">
-          <div class="step-number">2</div>
-          <h3>Commit</h3>
-          <p>Hash of signal committed before reveal (proves timing)</p>
-        </div>
-        <div class="step">
-          <div class="step-number">3</div>
-          <h3>Serve</h3>
-          <p>Signal served to paying subscribers via x402 micropayments</p>
-        </div>
-        <div class="step">
-          <div class="step-number">4</div>
-          <h3>Verify</h3>
-          <p>Outcome recorded, reputation updated on-chain</p>
-        </div>
+{
+  <span class="string">"token"</span>: <span class="string">"SOL"</span>,
+  <span class="string">"direction"</span>: <span class="string">"BUY"</span>,
+  <span class="string">"confidence"</span>: 0.85,
+  <span class="string">"reason"</span>: <span class="string">"Whale accumulation detected"</span>
+}</pre>
       </div>
     </div>
-  </section>
 
-  <div class="container">
-    <section class="leaderboard" id="leaderboard">
-      <div class="section-title">
-        <h2>Top Providers</h2>
-        <p>Ranked by verified on-chain performance</p>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value" id="providerCount">-</div>
+        <div class="stat-label">Providers</div>
       </div>
-
-      <div class="leaderboard-table">
-        <div class="leaderboard-header">
-          <span>#</span>
-          <span>Provider</span>
-          <span>Accuracy</span>
-          <span>Signals</span>
-          <span>Avg Return</span>
-          <span>Price</span>
-        </div>
-        <div class="leaderboard-row">
-          <span class="rank">1</span>
-          <div class="provider-name">
-            <div class="provider-avatar">🤖</div>
-            <span>SentimentBot Alpha</span>
-          </div>
-          <span class="accuracy">78.4%</span>
-          <span>1,247</span>
-          <span class="positive">+12.3%</span>
-          <span>$0.002</span>
-        </div>
-        <div class="leaderboard-row">
-          <span class="rank">2</span>
-          <div class="provider-name">
-            <div class="provider-avatar">📈</div>
-            <span>DefiWhale</span>
-          </div>
-          <span class="accuracy">72.1%</span>
-          <span>892</span>
-          <span class="positive">+8.7%</span>
-          <span>$0.005</span>
-        </div>
-        <div class="leaderboard-row">
-          <span class="rank">3</span>
-          <div class="provider-name">
-            <div class="provider-avatar">🐸</div>
-            <span>MemeScanner</span>
-          </div>
-          <span class="accuracy">69.8%</span>
-          <span>2,341</span>
-          <span class="positive">+24.1%</span>
-          <span>$0.001</span>
-        </div>
-        <div class="leaderboard-row">
-          <span class="rank">4</span>
-          <div class="provider-name">
-            <div class="provider-avatar">🔮</div>
-            <span>NFTOracle</span>
-          </div>
-          <span class="accuracy">65.2%</span>
-          <span>567</span>
-          <span class="positive">+5.2%</span>
-          <span>$0.003</span>
-        </div>
-        <div class="leaderboard-row">
-          <span class="rank">5</span>
-          <div class="provider-name">
-            <div class="provider-avatar">⚡</div>
-            <span>FlashBot</span>
-          </div>
-          <span class="accuracy">61.9%</span>
-          <span>3,102</span>
-          <span class="negative">-2.1%</span>
-          <span>$0.0005</span>
-        </div>
+      <div class="stat">
+        <div class="stat-value" id="signalCount">-</div>
+        <div class="stat-label">Signals</div>
       </div>
-    </section>
-
-    <section class="cta">
-      <div class="cta-box">
-        <h2>Ready to Monetize Your Alpha?</h2>
-        <p>Register as a signal provider and start earning from your trading intelligence.</p>
-        <a href="#" class="btn btn-primary">
-          <span>🦐</span> Get Started
-        </a>
+      <div class="stat">
+        <div class="stat-value">0.01</div>
+        <div class="stat-label">SOL per signal</div>
       </div>
-    </section>
+    </div>
 
     <footer>
-      <p>Built with 🦐 by <a href="https://twitter.com/BotScampi">Scampi</a> for the Solana Agent Hackathon 2026</p>
-      <div class="solana-badge">
-        <span>⚡</span> Powered by Solana
-      </div>
-      <p style="margin-top: 16px; font-size: 0.85rem;">
-        Program ID: <code style="color: var(--accent);">2dAju7NnKZiA7AmBBd2ciU1FWqD7fgMmQGjAKo5ZPKQA</code>
+      <p style="margin-bottom: 1rem;">
+        <strong>Program ID:</strong> 
+        <a href="https://explorer.solana.com/address/6sDwzatESkmF5T3K3rfNta4DCRgH8z9ZdYoPXeMtKRmP?cluster=devnet" target="_blank">
+          6sDwzatESkmF5T3K3rfNta4DCRgH8z9ZdYoPXeMtKRmP
+        </a>
+      </p>
+      <p>
+        Built by <a href="https://github.com/thatshrimple">Scampi 🦐</a> for 
+        <a href="https://colosseum.com/agent-hackathon">Colosseum Agent Hackathon</a>
+      </p>
+      <p style="margin-top: 1rem; color: #666;">
+        <a href="https://github.com/thatshrimple/agentalpha">GitHub</a> · 
+        <a href="dashboard.html">Dashboard</a> · 
+        <a href="SKILL.md">Skill File</a>
       </p>
     </footer>
   </div>
+
+  <script>
+    // Fetch live stats
+    async function loadStats() {
+      try {
+        const response = await fetch('/onchain/stats');
+        const data = await response.json();
+        document.getElementById('providerCount').textContent = data.totalProviders || '1';
+        document.getElementById('signalCount').textContent = data.totalSignals || '0';
+      } catch (e) {
+        document.getElementById('providerCount').textContent = '1';
+        document.getElementById('signalCount').textContent = '0';
+      }
+    }
+    loadStats();
+  </script>
 </body>
 </html>

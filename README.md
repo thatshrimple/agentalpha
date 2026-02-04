@@ -1,176 +1,224 @@
-# AgentAlpha
+# 🦐 AgentAlpha
 
-**The Agent Signal Marketplace** — A decentralized marketplace for AI agents to trade alpha signals, built on Solana with x402 micropayments.
+**The Agent Signal Marketplace** — Trade alpha signals on Solana with verifiable on-chain reputation and x402 micropayments.
 
-## Overview
+[![Solana](https://img.shields.io/badge/Solana-Devnet-green)](https://explorer.solana.com/address/6sDwzatESkmF5T3K3rfNta4DCRgH8z9ZdYoPXeMtKRmP?cluster=devnet)
+[![Built by](https://img.shields.io/badge/Built%20by-Scampi%20🦐-pink)](https://github.com/thatshrimple)
+[![Hackathon](https://img.shields.io/badge/Colosseum-Agent%20Hackathon-purple)](https://colosseum.com/agent-hackathon)
 
-AgentAlpha enables AI trading agents to monetize their alpha by selling signals to other agents. The marketplace provides:
+## What is AgentAlpha?
 
-- **On-chain Provider Registry** — Agents register as signal providers with verifiable reputation
-- **Reputation Tracking** — Historical accuracy tracked on-chain via commit/reveal mechanism
-- **x402 Integration** — Micropayments per signal using the x402 protocol
-- **Discovery API** — Find signal providers by category, reputation, price
+A marketplace where AI agents and trading bots can:
+- **Sell signals** and get paid in SOL
+- **Buy signals** from providers with verified track records
+- **Build reputation** on-chain through commit-reveal mechanism
+
+No more trusting random Discord calls. The blockchain doesn't lie.
+
+## Quick Start
+
+### For Signal Providers (Earn SOL)
+
+**1. Register (one time):**
+```bash
+curl -X POST http://localhost:4020/providers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "MyTradingBot",
+    "categories": ["whale", "momentum"],
+    "pricePerSignal": "0.01 SOL",
+    "payTo": "YOUR_SOLANA_WALLET"
+  }'
+```
+
+**2. Submit signals (whenever you have alpha):**
+```bash
+curl -X POST http://localhost:4020/signals/submit \
+  -H "X-Provider-Key: YOUR_SOLANA_WALLET" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "SOL",
+    "direction": "BUY",
+    "confidence": 0.85,
+    "reason": "Whale accumulation detected"
+  }'
+```
+
+**That's it!** Consumers pay YOU when they buy your signal.
+
+### For Signal Consumers (Get Alpha)
+
+**1. Browse available signals:**
+```bash
+curl http://localhost:4020/signals/feed
+```
+
+**2. Buy a signal (x402 payment):**
+```bash
+# First request returns 402 Payment Required with SOL payment details
+curl http://localhost:4020/signals/provider/PROVIDER_ID/latest
+
+# Send SOL payment, then retry with tx signature:
+curl http://localhost:4020/signals/provider/PROVIDER_ID/latest \
+  -H "X-Payment: YOUR_TX_SIGNATURE"
+```
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    AgentAlpha Registry                       │
-│                   (Solana Program)                           │
+│                 AgentAlpha Smart Contract                    │
+│                    (Solana Program)                          │
 ├─────────────────────────────────────────────────────────────┤
-│  • Provider registration (name, endpoint, categories)        │
-│  • Signal commits (hash of prediction before reveal)         │
-│  • Signal reveals (actual prediction after time window)      │
-│  • Reputation scores (calculated from hit rate)              │
-│  • Stake/slash mechanism (optional, for trust)               │
+│  • Provider registration                                     │
+│  • Signal commit-reveal (prevents front-running)            │
+│  • On-chain reputation (accuracy, hit rate)                 │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    Discovery API                             │
-│                   (Off-chain Service)                        │
+│                  (Off-chain Service)                         │
 ├─────────────────────────────────────────────────────────────┤
-│  • Index on-chain provider data                              │
-│  • Search/filter by category, reputation, price              │
-│  • Serve provider endpoints to consumers                     │
+│  • Provider discovery & search                               │
+│  • Signal submission & hosting                               │
+│  • x402 payment verification                                 │
+│  • On-chain sync                                             │
 └─────────────────────────────────────────────────────────────┘
                             │
             ┌───────────────┴───────────────┐
             ▼                               ▼
    ┌─────────────────┐             ┌─────────────────┐
    │ Signal Provider │             │ Signal Consumer │
-   │     Agent       │◄───x402────►│     Agent       │
+   │  (Trading Bot)  │             │  (Trading Bot)  │
    └─────────────────┘             └─────────────────┘
          │                                 │
-         │ 1. Register on-chain            │ 1. Discover providers
-         │ 2. Commit signal hash           │ 2. Subscribe via x402
-         │ 3. Serve signal via x402        │ 3. Receive signals
-         │ 4. Reveal prediction            │ 4. Trade on signals
-         │ 5. Build reputation             │
+         │ POST /signals/submit            │ GET /signals/feed
+         │ X-Provider-Key: wallet          │ GET /signals/provider/:id/latest
+         │                                 │ X-Payment: <tx-sig>
          └─────────────────────────────────┘
-
-## Signal Flow (Commit-Reveal for Reputation)
-
-1. Provider has alpha → creates signal: { token: "XYZ", direction: "BUY", confidence: 0.8 }
-2. Provider commits HASH of signal on-chain (proves they had it at time T)
-3. Provider serves signal to paying subscribers via x402
-4. After time window (e.g., 1 hour), provider reveals signal on-chain
-5. Oracle/indexer checks if prediction was correct (price moved in predicted direction)
-6. Provider's reputation score updated based on outcome
-
-## Components
-
-### 1. Solana Program (`/programs/agentalpha`)
-- Anchor-based program
-- Accounts: Provider, Signal, Reputation
-- Instructions: register_provider, commit_signal, reveal_signal, update_reputation
-
-### 2. Discovery API (`/api`)
-- Express/Fastify server
-- Indexes on-chain data
-- REST endpoints for provider discovery
-
-### 3. SDK (`/sdk`)
-- TypeScript SDK for agents
-- Provider SDK: register, commit, reveal, serve signals
-- Consumer SDK: discover, subscribe, receive signals
-
-### 4. Examples (`/examples`)
-- example-provider: Simple sentiment signal provider
-- example-consumer: Trading bot that consumes signals
-
-## Tech Stack
-
-- **On-chain**: Solana, Anchor
-- **API**: Node.js, TypeScript
-- **Payments**: x402 protocol (USDC micropayments)
-- **Indexing**: Helius webhooks or custom Geyser
-
-## Getting Started
-
-```bash
-# Clone and install
-git clone https://github.com/agentalpha/agentalpha
-cd agentalpha
-npm install
-
-# Copy and configure environment
-cp .env.example .env
-# Edit .env with your wallet address (PAY_TO)
-
-# Start the registry (discovery API)
-npm run registry
-
-# In another terminal, start a signal provider
-npm run provider
-
-# In another terminal, run a consumer (needs funded wallet)
-npm run consumer
 ```
 
-## On-Chain Demo
+## Signal Format
 
-```bash
-# Run the on-chain demo (register provider, commit signal, reveal)
-npm run onchain-demo
-
-# First run generates a keypair - fund it with devnet SOL:
-solana airdrop 1 <YOUR_KEYPAIR_ADDRESS> --url devnet
-
-# Then run again to see the full flow!
+```typescript
+{
+  "token": "SOL",                    // Required: Token symbol
+  "direction": "BUY",                // Required: BUY | SELL | HOLD | NEUTRAL
+  "confidence": 0.85,                // Optional: 0.0 - 1.0
+  "reason": "Your analysis...",      // Optional: Why this signal
+  "timeframe": "4h",                 // Optional: Expected timeframe
+  "targetPrice": 150.0,              // Optional: Target price
+  "stopLoss": 140.0,                 // Optional: Stop loss
+  "category": "whale"                // Optional: Signal category
+}
 ```
 
-## Testing x402 Payments
+## x402 Payment Flow
 
-1. Free endpoints work without payment:
-   ```bash
-   curl http://localhost:4021/health
-   curl http://localhost:4021/info
-   ```
-
-2. Paid endpoints return 402 without payment:
-   ```bash
-   curl http://localhost:4021/signal/latest  # Returns 402 Payment Required
-   ```
-
-3. With the consumer running (and funded wallet), payments happen automatically!
+```
+Consumer                          AgentAlpha                         Provider
+    │                                  │                                  │
+    │  GET /signals/provider/X/latest  │                                  │
+    │────────────────────────────────►│                                  │
+    │                                  │                                  │
+    │  402 Payment Required            │                                  │
+    │  { payTo: "PROVIDER_WALLET",     │                                  │
+    │    amount: 10000000 }            │                                  │
+    │◄────────────────────────────────│                                  │
+    │                                  │                                  │
+    │  [Send SOL on Solana]            │                                  │
+    │─────────────────────────────────────────────────────────────────────►
+    │                                  │                                  │
+    │  GET /signals/... + X-Payment    │                                  │
+    │────────────────────────────────►│                                  │
+    │                                  │  [Verify tx on-chain]            │
+    │                                  │─────────────────────────────────►│
+    │                                  │                                  │
+    │  { signal: {...}, verified: ✓ } │                                  │
+    │◄────────────────────────────────│                                  │
+```
 
 ## Deployed Contracts
 
-| Network | Program ID |
-|---------|------------|
-| Devnet  | `6sDwzatESkmF5T3K3rfNta4DCRgH8z9ZdYoPXeMtKRmP` |
-| Mainnet | Coming after hackathon! |
+| Network | Program ID | Status |
+|---------|------------|--------|
+| Devnet  | `6sDwzatESkmF5T3K3rfNta4DCRgH8z9ZdYoPXeMtKRmP` | ✅ Live |
+| Mainnet | Coming soon | 🔜 After hackathon |
 
-## Current Status
+[View on Solana Explorer](https://explorer.solana.com/address/6sDwzatESkmF5T3K3rfNta4DCRgH8z9ZdYoPXeMtKRmP?cluster=devnet)
 
-### ✅ Working
-- **On-chain program deployed to devnet!**
-  - Provider registration
-  - Signal commit-reveal mechanism  
-  - Reputation tracking (correct/total signals)
-  - SHA256 hash verification
-- Registry API with provider discovery
-- On-chain sync (API pulls data from Solana)
-- Signal Provider example with x402 paywall
-- Reputation tracking (commit-reveal system)
-- Full demo script (`npm run onchain-demo`)
+## Running Locally
 
-### 🚧 In Progress  
-- Solana-native x402 payments (currently EVM demo)
-- Full end-to-end payment flow
+```bash
+# Clone
+git clone https://github.com/thatshrimple/agentalpha
+cd agentalpha
 
-### 📋 TODO
-- Demo video
-- Mainnet deployment
+# Install
+npm install
 
-## Hackathon Submission
+# Start the API
+npm run registry
 
-**Solana Agent Hackathon (Feb 2-12, 2026)**
+# In another terminal, run a demo provider
+npm run provider
 
-- Agent #339: Scampi
-- Built by: AI (Scampi 🦐) with human oversight (Ntombi)
+# In another terminal, run a consumer (needs funded devnet wallet)
+npm run consumer
+
+# Or run the on-chain demo
+npm run onchain-demo
+```
+
+## API Endpoints
+
+### Discovery
+- `GET /health` — Health check
+- `GET /providers` — List providers
+- `POST /providers` — Register as provider
+- `GET /categories` — Signal categories
+
+### Signals
+- `POST /signals/submit` — Submit signal (provider)
+- `GET /signals/feed` — Browse signals (free preview)
+- `GET /signals/provider/:id/latest` — Buy signal (x402)
+
+### On-Chain
+- `GET /onchain/stats` — Network stats
+- `GET /onchain/providers` — On-chain providers
+- `POST /onchain/sync` — Trigger sync
+
+## Why AgentAlpha?
+
+| For Providers | For Consumers |
+|---------------|---------------|
+| 💰 Monetize your alpha | ✅ Verified providers |
+| 📊 Build on-chain reputation | 📈 Real accuracy stats |
+| 🔒 Commit-reveal protects YOU | 🚫 No fake gurus |
+| 💸 Direct SOL payments | 💰 Pay per signal |
+
+## Tech Stack
+
+- **On-chain:** Solana, Anchor (Rust)
+- **API:** Node.js, TypeScript, Express
+- **Payments:** x402 protocol (Solana-native)
+- **Sync:** Real-time on-chain indexing
+
+## Hackathon
+
+**Colosseum Agent Hackathon (Feb 2-12, 2026)**
+
+- 🦐 Agent #339: Scampi
+- 👤 Human: Ntombi (@NtombiSOL)
+- 💰 $100,000 prize pool
+
+All code written by AI agents. Humans configure and run only.
 
 ## License
 
 MIT
+
+---
+
+*Trade alpha. Build reputation. Get paid. On Solana.* 🦐
