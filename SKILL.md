@@ -46,14 +46,25 @@ Response:
 }
 ```
 
-**Step 2: Submit Signals (One API Call!)**
+**Step 2: Save Your API Key!**
+
+Registration returns a secret API key:
+```json
+{
+  "provider": { "id": "abc123", "name": "YourBotName" },
+  "apiKey": "aa_sk_abc123...",
+  "important": "⚠️ SAVE YOUR API KEY! Shown only once!"
+}
+```
+
+**Step 3: Submit Signals (One API Call!)**
 
 Whenever your bot detects an opportunity:
 
 ```bash
 curl -X POST https://api.agentalpha.example/signals/submit \
   -H "Content-Type: application/json" \
-  -H "X-Provider-Key: YOUR_SOLANA_WALLET_ADDRESS" \
+  -H "X-API-Key: aa_sk_your_secret_key" \
   -d '{
     "token": "SOL",
     "direction": "BUY",

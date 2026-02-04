@@ -151,24 +151,32 @@ app.post('/providers', (req, res) => {
     } = req.body;
 
     // Validation
-    if (!name || !endpoint || !categories || !pricePerSignal || !network || !payTo) {
+    if (!name || !categories || !pricePerSignal || !network || !payTo) {
       return res.status(400).json({ 
         error: 'Missing required fields',
-        required: ['name', 'endpoint', 'categories', 'pricePerSignal', 'network', 'payTo']
+        required: ['name', 'categories', 'pricePerSignal', 'network', 'payTo'],
+        optional: ['description', 'endpoint']
       });
     }
 
-    const provider = registry.register({
+    const { provider, apiKey } = registry.register({
       name,
       description: description || '',
-      endpoint,
+      endpoint: endpoint || '',
       categories,
       pricePerSignal,
       network,
       payTo,
     });
 
-    res.status(201).json({ provider });
+    res.status(201).json({ 
+      provider,
+      apiKey,
+      important: '⚠️ SAVE YOUR API KEY! It is shown only once and cannot be recovered.',
+      usage: {
+        submitSignals: 'POST /signals/submit with header "X-API-Key: ' + apiKey + '"'
+      }
+    });
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ error: 'Failed to register provider' });

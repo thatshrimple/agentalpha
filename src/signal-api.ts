@@ -36,7 +36,7 @@ const connection = new Connection(RPC_URL, 'confirmed');
  * POST /signals/submit
  * 
  * Headers:
- *   X-Provider-Key: <provider's signing key or API key>
+ *   X-API-Key: <your secret API key from registration>
  * 
  * Body:
  *   {
@@ -50,27 +50,22 @@ const connection = new Connection(RPC_URL, 'confirmed');
  */
 router.post('/submit', async (req, res) => {
   try {
-    const providerKey = req.headers['x-provider-key'] as string;
+    const apiKey = req.headers['x-api-key'] as string;
     
-    if (!providerKey) {
+    if (!apiKey) {
       return res.status(401).json({ 
-        error: 'Missing X-Provider-Key header',
-        hint: 'Register at POST /providers to get your key'
+        error: 'Missing X-API-Key header',
+        hint: 'Register at POST /providers to get your secret API key'
       });
     }
 
-    // Find provider by key (in production, verify signature)
-    const providers = registry.list();
-    const provider = providers.find(p => 
-      p.payTo === providerKey || 
-      p.id === providerKey ||
-      p.onChainAuthority === providerKey
-    );
+    // Verify API key
+    const provider = registry.verifyApiKey(apiKey);
 
     if (!provider) {
       return res.status(401).json({ 
-        error: 'Unknown provider',
-        hint: 'Register first at POST /providers'
+        error: 'Invalid API key',
+        hint: 'Check your API key or register at POST /providers'
       });
     }
 

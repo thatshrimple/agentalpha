@@ -12,19 +12,36 @@ import {
 } from './types.js';
 import crypto from 'crypto';
 
+// Store API keys separately (not exposed in provider listings)
+const apiKeys: Map<string, string> = new Map(); // apiKey -> providerId
+const providerApiKeys: Map<string, string> = new Map(); // providerId -> apiKey
+
+/**
+ * Generate a secure API key
+ */
+function generateApiKey(): string {
+  const prefix = 'aa_sk_'; // agentalpha_secret_key
+  const random = crypto.randomBytes(32).toString('hex');
+  return `${prefix}${random}`;
+}
+
 class ProviderRegistry {
   private providers: Map<string, Provider> = new Map();
 
-  // Register a new provider
+  /**
+   * Register a new provider
+   * Returns provider AND secret apiKey (only shown once!)
+   */
   register(registration: {
     name: string;
     description: string;
-    endpoint: string;
+    endpoint?: string;
     categories: SignalCategory[];
     pricePerSignal: string;
     network: string;
     payTo: string;
-  }): Provider {
+    onChainAuthority?: string;
+  }): { provider: Provider; apiKey: string } {
     const id = crypto.randomUUID();
     const now = Date.now();
 
@@ -32,11 +49,12 @@ class ProviderRegistry {
       id,
       name: registration.name,
       description: registration.description,
-      endpoint: registration.endpoint,
+      endpoint: registration.endpoint || '',
       categories: registration.categories,
       pricePerSignal: registration.pricePerSignal,
       network: registration.network,
       payTo: registration.payTo,
+      onChainAuthority: registration.onChainAuthority,
       reputation: {
         totalSignals: 0,
         correctSignals: 0,
@@ -49,17 +67,51 @@ class ProviderRegistry {
       updatedAt: now,
     };
 
+    // Generate secret API key
+    const apiKey = generateApiKey();
+    
+    // Store mappings
     this.providers.set(id, provider);
+    apiKeys.set(apiKey, id);
+    providerApiKeys.set(id, apiKey);
+
     console.log(`[Registry] Registered provider: ${provider.name} (${id})`);
-    return provider;
+    
+    // Return both - apiKey only shown once!
+    return { provider, apiKey };
   }
 
-  // Get provider by ID
+  /**
+   * Verify API key and get provider
+   */
+  verifyApiKey(apiKey: string): Provider | null {
+    const providerId = apiKeys.get(apiKey);
+    if (!providerId) return null;
+    return this.providers.get(providerId) || null;
+  }
+
+  /**
+   * Get provider by ID
+   */
   get(id: string): Provider | undefined {
     return this.providers.get(id);
   }
 
-  // Update provider
+  /**
+   * Find provider by wallet address or on-chain authority
+   */
+  findByWallet(wallet: string): Provider | undefined {
+    for (const provider of this.providers.values()) {
+      if (provider.payTo === wallet || provider.onChainAuthority === wallet) {
+        return provider;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Update provider
+   */
   update(id: string, updates: Partial<Provider>): Provider | undefined {
     const provider = this.providers.get(id);
     if (!provider) return undefined;
@@ -74,7 +126,9 @@ class ProviderRegistry {
     return updated;
   }
 
-  // Update reputation
+  /**
+   * Update reputation
+   */
   updateReputation(id: string, reputation: Partial<ProviderReputation>): Provider | undefined {
     const provider = this.providers.get(id);
     if (!provider) return undefined;
@@ -89,7 +143,9 @@ class ProviderRegistry {
     return provider;
   }
 
-  // Search providers
+  /**
+   * Search providers
+   */
   search(params: ProviderSearchParams): ProviderListResponse {
     let results = Array.from(this.providers.values());
 
@@ -120,22 +176,36 @@ class ProviderRegistry {
     };
   }
 
-  // List all providers
+  /**
+   * List all providers
+   */
   list(): Provider[] {
     return Array.from(this.providers.values());
   }
 
-  // Delete provider
+  /**
+   * Delete provider
+   */
   delete(id: string): boolean {
+    // Also clean up API key
+    const apiKey = providerApiKeys.get(id);
+    if (apiKey) {
+      apiKeys.delete(apiKey);
+      providerApiKeys.delete(id);
+    }
     return this.providers.delete(id);
   }
 
-  // Export for persistence
+  /**
+   * Export for persistence
+   */
   export(): Provider[] {
     return this.list();
   }
 
-  // Import from persistence
+  /**
+   * Import from persistence
+   */
   import(providers: Provider[]): void {
     for (const p of providers) {
       this.providers.set(p.id, p);
