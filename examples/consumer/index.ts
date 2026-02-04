@@ -1,208 +1,208 @@
 /**
- * AgentAlpha - Example Signal Consumer
+ * AgentAlpha - Example Signal Consumer (Solana x402)
  * 
- * A demo trading agent that:
- * 1. Discovers signal providers from the registry
- * 2. Pays for signals via x402
- * 3. Processes signals for trading decisions
+ * A demo consumer that subscribes to signal providers
+ * and pays for signals via Solana x402.
  */
 
-import { x402Client, wrapFetchWithPayment, x402HTTPClient } from '@x402/fetch';
-import { registerExactEvmScheme } from '@x402/evm/exact/client';
-import { privateKeyToAccount } from 'viem/accounts';
-import type { Signal, Provider } from '../../src/types.js';
+import {
+  Connection,
+  Keypair,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+  sendAndConfirmTransaction,
+  LAMPORTS_PER_SOL,
+} from '@solana/web3.js';
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // Configuration
-const PRIVATE_KEY = process.env.EVM_PRIVATE_KEY as `0x${string}`;
-const PROVIDER_URL = process.env.PROVIDER_URL || 'http://localhost:4021';
 const REGISTRY_URL = process.env.REGISTRY_URL || 'http://localhost:4020';
-const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL || '60000'); // 1 minute
+const RPC_URL = process.env.RPC_URL || 'https://api.devnet.solana.com';
+const KEYPAIR_PATH = process.env.KEYPAIR_PATH || path.join(__dirname, 'consumer-keypair.json');
 
-if (!PRIVATE_KEY) {
-  console.error('❌ EVM_PRIVATE_KEY environment variable required');
-  console.log('   Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
-  console.log('   Then fund it with testnet USDC on Base Sepolia');
-  process.exit(1);
+// Solana connection
+const connection = new Connection(RPC_URL, 'confirmed');
+
+// Load or generate keypair
+function loadKeypair(): Keypair {
+  if (fs.existsSync(KEYPAIR_PATH)) {
+    const data = JSON.parse(fs.readFileSync(KEYPAIR_PATH, 'utf8'));
+    return Keypair.fromSecretKey(Uint8Array.from(data));
+  }
+  
+  const keypair = Keypair.generate();
+  fs.writeFileSync(KEYPAIR_PATH, JSON.stringify(Array.from(keypair.secretKey)));
+  console.log(`Generated new keypair: ${keypair.publicKey.toBase58()}`);
+  console.log(`Fund it with: solana airdrop 1 ${keypair.publicKey.toBase58()} --url devnet`);
+  return keypair;
 }
 
-// Setup x402 client
-const signer = privateKeyToAccount(PRIVATE_KEY);
-const client = new x402Client();
-registerExactEvmScheme(client, { signer });
+/**
+ * Send SOL payment for x402
+ */
+async function sendPayment(
+  payer: Keypair,
+  recipient: string,
+  amountLamports: number
+): Promise<string> {
+  const tx = new Transaction().add(
+    SystemProgram.transfer({
+      fromPubkey: payer.publicKey,
+      toPubkey: new PublicKey(recipient),
+      lamports: amountLamports,
+    })
+  );
 
-// Wrap fetch with automatic payment handling
-const fetchWithPayment = wrapFetchWithPayment(fetch, client);
-const httpClient = new x402HTTPClient(client);
+  const signature = await sendAndConfirmTransaction(connection, tx, [payer]);
+  return signature;
+}
 
-console.log(`
-╔════════════════════════════════════════════════════════════╗
-║                   AgentAlpha Signal Consumer               ║
-╠════════════════════════════════════════════════════════════╣
-║  Wallet:   ${signer.address.slice(0, 10)}...${signer.address.slice(-8).padEnd(29)}║
-║  Provider: ${PROVIDER_URL.padEnd(43)}║
-║  Interval: ${(POLL_INTERVAL / 1000).toString().padEnd(5)}s                                       ║
-╚════════════════════════════════════════════════════════════╝
-`);
+/**
+ * Request a signal with x402 payment flow
+ */
+async function requestSignal(
+  providerEndpoint: string,
+  payer: Keypair
+): Promise<any> {
+  // Step 1: Request without payment
+  console.log('\n📡 Requesting signal...');
+  const response = await fetch(`${providerEndpoint}/signal/latest`);
+  
+  // Step 2: Check if payment required
+  if (response.status === 402) {
+    const paymentRequired = await response.json();
+    console.log('💰 Payment required!');
+    
+    const accept = paymentRequired.accepts?.[0];
+    if (!accept) {
+      throw new Error('No payment options in 402 response');
+    }
 
-// Track processed signals to avoid duplicates
-const processedSignals = new Set<string>();
+    const amount = parseInt(accept.maxAmountRequired);
+    const recipient = accept.payTo;
+    
+    console.log(`   Amount: ${amount / LAMPORTS_PER_SOL} SOL`);
+    console.log(`   Pay to: ${recipient}`);
 
-// Signal processing callback
-type SignalHandler = (signal: Signal) => void;
+    // Step 3: Send payment
+    console.log('\n💸 Sending payment...');
+    const signature = await sendPayment(payer, recipient, amount);
+    console.log(`   TX: ${signature}`);
 
-class SignalConsumer {
-  private handlers: SignalHandler[] = [];
-  private running = false;
+    // Wait a moment for confirmation
+    await new Promise(r => setTimeout(r, 2000));
 
-  // Register a handler for new signals
-  onSignal(handler: SignalHandler): void {
-    this.handlers.push(handler);
+    // Step 4: Retry with payment proof
+    console.log('\n🔄 Retrying with payment proof...');
+    const paidResponse = await fetch(`${providerEndpoint}/signal/latest`, {
+      headers: {
+        'X-Payment': signature
+      }
+    });
+
+    if (!paidResponse.ok) {
+      const error = await paidResponse.json();
+      throw new Error(`Payment failed: ${error.error || paidResponse.statusText}`);
+    }
+
+    return paidResponse.json();
   }
 
-  // Fetch latest signal from provider (pays via x402)
-  async fetchLatestSignal(providerUrl: string): Promise<Signal | null> {
-    try {
-      console.log(`📡 Fetching signal from ${providerUrl}/signal/latest`);
-      
-      const response = await fetchWithPayment(`${providerUrl}/signal/latest`, {
-        method: 'GET',
-      });
+  // No payment required (shouldn't happen for paid endpoints)
+  return response.json();
+}
 
-      if (!response.ok) {
-        console.error(`❌ Failed to fetch signal: ${response.status} ${response.statusText}`);
-        return null;
-      }
-
-      const data = await response.json() as { signal: Signal };
-      
-      // Check for payment receipt
-      const paymentResponse = httpClient.getPaymentSettleResponse(
-        (name) => response.headers.get(name)
-      );
-      
-      if (paymentResponse) {
-        console.log(`💰 Payment settled: ${'txHash' in paymentResponse ? (paymentResponse as any).txHash : 'confirmed'}`);
-      }
-
-      return data.signal;
-    } catch (error) {
-      console.error('❌ Error fetching signal:', error);
-      return null;
-    }
-  }
-
-  // Fetch bulk signals (recent)
-  async fetchRecentSignals(providerUrl: string): Promise<Signal[]> {
-    try {
-      console.log(`📡 Fetching recent signals from ${providerUrl}/signals`);
-      
-      const response = await fetchWithPayment(`${providerUrl}/signals`, {
-        method: 'GET',
-      });
-
-      if (!response.ok) {
-        console.error(`❌ Failed to fetch signals: ${response.status} ${response.statusText}`);
-        return [];
-      }
-
-      const data = await response.json() as { signals: Signal[] };
-      return data.signals;
-    } catch (error) {
-      console.error('❌ Error fetching signals:', error);
-      return [];
-    }
-  }
-
-  // Process a signal
-  private processSignal(signal: Signal): void {
-    if (processedSignals.has(signal.id)) {
-      return; // Already processed
-    }
-
-    processedSignals.add(signal.id);
-    console.log(`\n🔔 NEW SIGNAL RECEIVED:`);
-    console.log(`   Token:      ${signal.token}`);
-    console.log(`   Direction:  ${signal.direction}`);
-    console.log(`   Confidence: ${(signal.confidence * 100).toFixed(1)}%`);
-    console.log(`   Reason:     ${signal.reason || 'N/A'}`);
-    console.log(`   Timeframe:  ${signal.timeframe || 'N/A'}`);
-    console.log(`   ID:         ${signal.id}`);
-
-    // Call registered handlers
-    for (const handler of this.handlers) {
-      try {
-        handler(signal);
-      } catch (error) {
-        console.error('Error in signal handler:', error);
-      }
-    }
-  }
-
-  // Start polling for signals
-  async start(providerUrl: string, intervalMs: number): Promise<void> {
-    this.running = true;
-    console.log(`🚀 Starting signal consumer, polling every ${intervalMs / 1000}s`);
-
-    // Initial fetch
-    const signal = await this.fetchLatestSignal(providerUrl);
-    if (signal) {
-      this.processSignal(signal);
-    }
-
-    // Polling loop
-    while (this.running) {
-      await new Promise(resolve => setTimeout(resolve, intervalMs));
-      
-      if (!this.running) break;
-
-      const newSignal = await this.fetchLatestSignal(providerUrl);
-      if (newSignal) {
-        this.processSignal(newSignal);
-      }
-    }
-  }
-
-  // Stop polling
-  stop(): void {
-    this.running = false;
-    console.log('🛑 Stopping signal consumer');
+/**
+ * Discover providers from registry
+ */
+async function discoverProviders(): Promise<any[]> {
+  try {
+    const response = await fetch(`${REGISTRY_URL}/providers`);
+    const data = await response.json();
+    return data.providers || [];
+  } catch (error) {
+    console.error('Failed to fetch providers from registry:', error);
+    return [];
   }
 }
 
-// Demo trading logic
-function demoTradingLogic(signal: Signal): void {
-  if (signal.confidence < 0.6) {
-    console.log(`   ⏸️  Confidence too low (${(signal.confidence * 100).toFixed(1)}%), skipping`);
+/**
+ * Main consumer loop
+ */
+async function main() {
+  console.log('🦐 AgentAlpha Signal Consumer\n');
+  console.log('═'.repeat(50));
+
+  // Load keypair
+  const payer = loadKeypair();
+  console.log(`\nWallet: ${payer.publicKey.toBase58()}`);
+  
+  // Check balance
+  const balance = await connection.getBalance(payer.publicKey);
+  console.log(`Balance: ${balance / LAMPORTS_PER_SOL} SOL`);
+
+  if (balance < 0.05 * LAMPORTS_PER_SOL) {
+    console.log('\n⚠️  Low balance! Fund with:');
+    console.log(`   solana airdrop 1 ${payer.publicKey.toBase58()} --url devnet`);
     return;
   }
 
-  if (signal.direction === 'BUY') {
-    console.log(`   ✅ WOULD BUY ${signal.token} based on ${signal.category} signal`);
-  } else if (signal.direction === 'SELL') {
-    console.log(`   ✅ WOULD SELL ${signal.token} based on ${signal.category} signal`);
-  } else {
-    console.log(`   ⏸️  HOLD signal, no action`);
-  }
-}
-
-// Main
-async function main() {
-  const consumer = new SignalConsumer();
+  // Discover providers
+  console.log('\n📋 Discovering providers...');
+  const providers = await discoverProviders();
   
-  // Register trading logic
-  consumer.onSignal(demoTradingLogic);
+  if (providers.length === 0) {
+    console.log('No providers found. Using default endpoint...');
+  } else {
+    console.log(`Found ${providers.length} provider(s):`);
+    providers.forEach(p => {
+      console.log(`   - ${p.name}: ${p.endpoint} (${p.pricePerSignal})`);
+    });
+  }
 
-  // Handle shutdown
-  process.on('SIGINT', () => {
-    consumer.stop();
-    process.exit(0);
-  });
+  // Use first provider or default
+  const providerEndpoint = providers[0]?.endpoint || 'http://localhost:4021';
+  console.log(`\nUsing provider: ${providerEndpoint}`);
 
-  // Start consuming signals
-  await consumer.start(PROVIDER_URL, POLL_INTERVAL);
+  // Request a signal
+  try {
+    const result = await requestSignal(providerEndpoint, payer);
+    
+    console.log('\n✅ Signal received!');
+    console.log('═'.repeat(50));
+    
+    if (result.signal) {
+      const s = result.signal;
+      console.log(`Token:      ${s.token}`);
+      console.log(`Direction:  ${s.direction}`);
+      console.log(`Confidence: ${(s.confidence * 100).toFixed(1)}%`);
+      console.log(`Reason:     ${s.reason}`);
+      console.log(`Timeframe:  ${s.timeframe}`);
+      console.log(`Signal ID:  ${s.id}`);
+    }
+
+    if (result.payment) {
+      console.log(`\nPayment TX: ${result.payment.signature}`);
+    }
+
+  } catch (error: any) {
+    console.error('\n❌ Error:', error.message);
+  }
+
+  console.log('\n═'.repeat(50));
+  console.log('Demo complete! In production, you would:');
+  console.log('1. Store signals for analysis');
+  console.log('2. Execute trades based on signals');
+  console.log('3. Track provider accuracy over time');
 }
 
 main().catch(console.error);

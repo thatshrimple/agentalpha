@@ -30,21 +30,14 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/agentalpha/agentalpha"
+    "url": "https://github.com/thatshrimple/agentalpha"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",
     "@solana/web3.js": "^1.98.4",
-    "@x402/axios": "^2.2.0",
-    "@x402/core": "^2.2.0",
-    "@x402/evm": "^2.2.0",
-    "@x402/express": "^2.2.0",
-    "@x402/fetch": "^2.2.0",
-    "axios": "^1.13.4",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
-    "express": "^5.2.1",
-    "viem": "^2.45.1"
+    "express": "^5.2.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
