@@ -42,7 +42,7 @@ function generateHash(signal: SignalInput): { hash: string; bytes: number[]; inp
 router.get('/docs', (req, res) => {
   res.json({
     title: 'AgentAlpha Signal Hash Format',
-    programId: 'D5YAmNYP554B3NmzmBZxHduNCpd7K3TfDpstzCGfiw7A',
+    programId: '6sDwzatESkmF5T3K3rfNta4DCRgH8z9ZdYoPXeMtKRmP',
     network: 'devnet',
     
     format: {
@@ -85,6 +85,15 @@ router.get('/docs', (req, res) => {
  * POST /hash - Generate signal hash
  */
 router.post('/', (req, res) => {
+  // Guard against missing body (body-parser failure)
+  if (!req.body || typeof req.body !== 'object') {
+    return res.status(400).json({ 
+      error: 'Request body required',
+      hint: 'Send JSON with Content-Type: application/json',
+      docs: '/hash/docs'
+    });
+  }
+
   const { token, direction, entry, takeProfit, stopLoss, timeframeHours, confidence } = req.body;
   
   // Validate required fields
@@ -156,7 +165,7 @@ router.post('/', (req, res) => {
       riskRewardRatio: rr
     },
     onChain: {
-      step1: 'Call commitSignal(hashBytes) on program D5YAmNYP554B3NmzmBZxHduNCpd7K3TfDpstzCGfiw7A',
+      step1: 'Call commitSignal(hashBytes) on program 6sDwzatESkmF5T3K3rfNta4DCRgH8z9ZdYoPXeMtKRmP',
       step2: 'Wait for evaluation window',
       step3: 'Call revealSignal with signal data',
       step4: 'Oracle records outcome'

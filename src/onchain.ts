@@ -14,7 +14,6 @@ import {
   sendAndConfirmTransaction,
 } from '@solana/web3.js';
 import { createHash } from 'crypto';
-import { SignalDirection } from './types.js';
 
 // Program ID from deployed contract
 export const PROGRAM_ID = new PublicKey('6sDwzatESkmF5T3K3rfNta4DCRgH8z9ZdYoPXeMtKRmP');
@@ -23,7 +22,7 @@ export const PROGRAM_ID = new PublicKey('6sDwzatESkmF5T3K3rfNta4DCRgH8z9ZdYoPXeM
 const PROVIDER_SEED = Buffer.from('provider');
 const SIGNAL_SEED = Buffer.from('signal');
 
-// Instruction discriminators (from IDL)
+// Instruction discriminators (from Anchor IDL)
 const DISCRIMINATORS = {
   registerProvider: Buffer.from([254, 209, 54, 184, 46, 197, 109, 78]),
   commitSignal: Buffer.from([137, 14, 98, 40, 102, 88, 98, 135]),
@@ -31,6 +30,16 @@ const DISCRIMINATORS = {
   updateProvider: Buffer.from([52, 208, 141, 191, 164, 54, 108, 150]),
   recordOutcome: Buffer.from([130, 121, 6, 102, 151, 160, 252, 6]),
 };
+
+export interface SignalInput {
+  token: string;
+  direction: 'BUY' | 'SELL';
+  entry: number;        // Entry price in dollars
+  takeProfit: number;   // TP price in dollars
+  stopLoss: number;     // SL price in dollars
+  timeframeHours: number;
+  confidence: number;   // 0-100
+}
 
 export interface OnChainProvider {
   authority: PublicKey;
@@ -53,10 +62,14 @@ export interface OnChainSignalCommit {
   outcomeRecorded: boolean;
   token: string;
   direction: number;
+  entryCents: bigint;
+  tpCents: bigint;
+  slCents: bigint;
+  timeframeHours: number;
   confidence: number;
-  priceAtSignal: bigint;
   revealedAt: bigint;
-  priceAtEvaluation: bigint;
+  outcome: number;
+  finalPriceCents: bigint;
   wasCorrect: boolean;
   returnBps: number;
   evaluatedAt: bigint;
@@ -96,16 +109,18 @@ export class AgentAlphaClient {
 
   /**
    * Compute signal hash for commit-reveal
+   * Format: "{token}:{direction}:{entry_cents}:{tp_cents}:{sl_cents}:{timeframe}:{confidence}"
    */
-  static computeSignalHash(
-    token: string,
-    direction: SignalDirection,
-    confidence: number
-  ): Uint8Array {
-    const directionNum = direction === 'BUY' ? 1 : direction === 'SELL' ? 2 : 0;
-    const data = `${token}:${directionNum}:${confidence}`;
-    const hash = createHash('sha256').update(data).digest();
-    return new Uint8Array(hash);
+  static computeSignalHash(signal: SignalInput): { hash: Uint8Array; input: string } {
+    const dirNum = signal.direction === 'BUY' ? 0 : 1;
+    const entryCents = Math.round(signal.entry * 100);
+    const tpCents = Math.round(signal.takeProfit * 100);
+    const slCents = Math.round(signal.stopLoss * 100);
+    
+    const input = `${signal.token}:${dirNum}:${entryCents}:${tpCents}:${slCents}:${signal.timeframeHours}:${signal.confidence}`;
+    const hash = createHash('sha256').update(input).digest();
+    
+    return { hash: new Uint8Array(hash), input };
   }
 
   /**
@@ -119,21 +134,17 @@ export class AgentAlphaClient {
   ): Promise<string> {
     const [providerPDA] = this.getProviderPDA(this.payer.publicKey);
 
-    // Encode instruction data
     const nameBytes = Buffer.from(name, 'utf8');
     const endpointBytes = Buffer.from(endpoint, 'utf8');
     
     const data = Buffer.concat([
       DISCRIMINATORS.registerProvider,
-      // String: 4-byte length + bytes
       this.encodeU32(nameBytes.length),
       nameBytes,
       this.encodeU32(endpointBytes.length),
       endpointBytes,
-      // Vec<u8>: 4-byte length + bytes
       this.encodeU32(categories.length),
       Buffer.from(categories),
-      // u64
       this.encodeU64(priceLamports),
     ]);
 
@@ -180,27 +191,28 @@ export class AgentAlphaClient {
 
   /**
    * Reveal a signal on-chain
+   * Must match the hash that was committed
    */
-  async revealSignal(
-    signalHash: Uint8Array,
-    token: string,
-    direction: SignalDirection,
-    confidence: number,
-    priceAtSignal: bigint
-  ): Promise<string> {
+  async revealSignal(signal: SignalInput, signalHash: Uint8Array): Promise<string> {
     const [providerPDA] = this.getProviderPDA(this.payer.publicKey);
     const [signalCommitPDA] = this.getSignalCommitPDA(providerPDA, signalHash);
 
-    const directionNum = direction === 'BUY' ? 1 : direction === 'SELL' ? 2 : 0;
-    const tokenBytes = Buffer.from(token, 'utf8');
+    const dirNum = signal.direction === 'BUY' ? 0 : 1;
+    const entryCents = BigInt(Math.round(signal.entry * 100));
+    const tpCents = BigInt(Math.round(signal.takeProfit * 100));
+    const slCents = BigInt(Math.round(signal.stopLoss * 100));
+    const tokenBytes = Buffer.from(signal.token, 'utf8');
 
     const data = Buffer.concat([
       DISCRIMINATORS.revealSignal,
       this.encodeU32(tokenBytes.length),
       tokenBytes,
-      Buffer.from([directionNum]),
-      Buffer.from([confidence]),
-      this.encodeU64(priceAtSignal),
+      Buffer.from([dirNum]),
+      this.encodeU64(entryCents),
+      this.encodeU64(tpCents),
+      this.encodeU64(slCents),
+      Buffer.from([signal.timeframeHours]),
+      Buffer.from([signal.confidence]),
     ]);
 
     const ix = {
@@ -226,7 +238,6 @@ export class AgentAlphaClient {
     
     if (!accountInfo) return null;
     
-    // Parse account data (skip 8-byte discriminator)
     return this.parseProviderAccount(accountInfo.data.slice(8));
   }
 
@@ -234,26 +245,18 @@ export class AgentAlphaClient {
    * Fetch all registered providers
    */
   async getAllProviders(): Promise<OnChainProvider[]> {
-    // Fetch all program accounts
     const accounts = await this.connection.getProgramAccounts(PROGRAM_ID);
-
     const providers: OnChainProvider[] = [];
     
     for (const { account } of accounts) {
       try {
-        // Skip accounts that are too small to be providers
         if (account.data.length < 100) continue;
-        
-        // Try to parse as provider account (skip 8-byte discriminator)
         const provider = this.parseProviderAccount(account.data.slice(8));
-        
-        // Validate it looks like a provider (has name and endpoint)
-        if (provider.name && provider.name.length > 0 && 
-            provider.endpoint && provider.endpoint.length > 0) {
+        if (provider.name && provider.name.length > 0) {
           providers.push(provider);
         }
       } catch (e) {
-        // Not a provider account, skip
+        // Not a provider account
       }
     }
 
@@ -278,49 +281,39 @@ export class AgentAlphaClient {
   private parseProviderAccount(data: Buffer): OnChainProvider {
     let offset = 0;
 
-    // authority: pubkey (32 bytes)
     const authority = new PublicKey(data.slice(offset, offset + 32));
     offset += 32;
 
-    // name: string (4-byte length + bytes)
     const nameLen = data.readUInt32LE(offset);
     offset += 4;
     const name = data.slice(offset, offset + nameLen).toString('utf8');
     offset += nameLen;
 
-    // endpoint: string
     const endpointLen = data.readUInt32LE(offset);
     offset += 4;
     const endpoint = data.slice(offset, offset + endpointLen).toString('utf8');
     offset += endpointLen;
 
-    // categories: Vec<u8>
     const categoriesLen = data.readUInt32LE(offset);
     offset += 4;
     const categories = Array.from(data.slice(offset, offset + categoriesLen));
     offset += categoriesLen;
 
-    // price_lamports: u64
     const priceLamports = data.readBigUInt64LE(offset);
     offset += 8;
 
-    // total_signals: u64
     const totalSignals = data.readBigUInt64LE(offset);
     offset += 8;
 
-    // correct_signals: u64
     const correctSignals = data.readBigUInt64LE(offset);
     offset += 8;
 
-    // total_return_bps: i64
     const totalReturnBps = data.readBigInt64LE(offset);
     offset += 8;
 
-    // created_at: i64
     const createdAt = data.readBigInt64LE(offset);
     offset += 8;
 
-    // updated_at: i64
     const updatedAt = data.readBigInt64LE(offset);
     offset += 8;
 
