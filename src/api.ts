@@ -12,6 +12,7 @@ import { reputationTracker } from './reputation.js';
 import { onchainSync } from './onchain-sync.js';
 import signalApi from './signal-api.js';
 import { hashRouter } from './hash-api.js';
+import demoApi from './demo-api.js';
 import type { Provider, ProviderSearchParams, SignalCategory, Signal } from './types.js';
 import dotenv from 'dotenv';
 
@@ -26,6 +27,9 @@ app.use('/signals', signalApi);
 
 // Mount hash generation API
 app.use('/hash', hashRouter);
+
+// Mount demo API (for live demos without wallet setup)
+app.use('/demo', demoApi);
 
 const PORT = process.env.PORT || process.env.REGISTRY_PORT || 4020;
 const ENABLE_ONCHAIN_SYNC = process.env.ENABLE_ONCHAIN_SYNC !== 'false';
