@@ -12,32 +12,52 @@ import { createHash } from 'crypto';
 
 const router = Router();
 
-// Demo wallet - loaded from environment or generates new one
-let demoWallet: Keypair;
-let demoClient: AgentAlphaClient;
+// Demo wallet - loaded lazily on first use
+let demoWallet: Keypair | null = null;
+let demoClient: AgentAlphaClient | null = null;
+let initError: string | null = null;
 
 const DEVNET_RPC = process.env.SOLANA_RPC || 'https://api.devnet.solana.com';
 
-// Initialize demo wallet
-function initDemoWallet() {
-  if (process.env.DEMO_WALLET_SECRET) {
-    // Load from environment (JSON array of numbers)
-    const secret = JSON.parse(process.env.DEMO_WALLET_SECRET);
-    demoWallet = Keypair.fromSecretKey(Uint8Array.from(secret));
-    console.log(`🎭 Demo wallet loaded: ${demoWallet.publicKey.toBase58()}`);
-  } else {
-    // Use the deploy wallet (4b3SxY...) - same as registered provider
-    const secret = [195,216,61,155,33,232,121,80,185,213,143,45,187,43,122,13,143,34,56,237,175,122,193,162,231,53,195,120,115,20,10,20,53,163,197,174,198,207,117,77,209,120,49,13,132,127,152,210,7,140,63,71,113,101,201,176,197,186,15,115,249,163,54,231];
-    demoWallet = Keypair.fromSecretKey(Uint8Array.from(secret));
-    console.log(`🎭 Demo wallet: ${demoWallet.publicKey.toBase58()}`);
-  }
+// Initialize demo wallet (lazy - called on first request)
+function initDemoWallet(): boolean {
+  if (demoWallet && demoClient) return true;
+  if (initError) return false;
+  
+  try {
+    if (process.env.DEMO_WALLET_SECRET) {
+      // Load from environment (JSON array of numbers)
+      const secret = JSON.parse(process.env.DEMO_WALLET_SECRET);
+      demoWallet = Keypair.fromSecretKey(Uint8Array.from(secret));
+      console.log(`🎭 Demo wallet loaded: ${demoWallet.publicKey.toBase58()}`);
+    } else {
+      // Use the deploy wallet (4b3SxY...) - same as registered provider
+      const secret = [195,216,61,155,33,232,121,80,185,213,143,45,187,43,122,13,143,34,56,237,175,122,193,162,231,53,195,120,115,20,10,20,53,163,197,174,198,207,117,77,209,120,49,13,132,127,152,210,7,140,63,71,113,101,201,176,197,186,15,115,249,163,54,231];
+      demoWallet = Keypair.fromSecretKey(Uint8Array.from(secret));
+      console.log(`🎭 Demo wallet: ${demoWallet.publicKey.toBase58()}`);
+    }
 
-  const connection = new Connection(DEVNET_RPC, 'confirmed');
-  demoClient = new AgentAlphaClient(connection, demoWallet);
+    const connection = new Connection(DEVNET_RPC, 'confirmed');
+    demoClient = new AgentAlphaClient(connection, demoWallet);
+    return true;
+  } catch (error: any) {
+    initError = error.message;
+    console.error(`❌ Demo wallet init failed: ${error.message}`);
+    return false;
+  }
 }
 
-// Initialize on module load
-initDemoWallet();
+// Middleware to ensure demo is initialized
+function requireDemoInit(req: any, res: any, next: any) {
+  if (!initDemoWallet()) {
+    return res.status(503).json({ 
+      error: 'Demo API not available', 
+      reason: initError,
+      hint: 'The demo wallet could not be initialized. Try again later.'
+    });
+  }
+  next();
+}
 
 /**
  * Compute signal hash matching the on-chain format
@@ -62,18 +82,18 @@ function computeSignalHash(
 }
 
 // GET /demo/status - Check demo wallet status
-router.get('/status', async (req, res) => {
+router.get('/status', requireDemoInit, async (req, res) => {
   try {
     const connection = new Connection(DEVNET_RPC, 'confirmed');
-    const balance = await connection.getBalance(demoWallet.publicKey);
+    const balance = await connection.getBalance(demoWallet!.publicKey);
     
     // Check if registered as provider
-    const provider = await demoClient.getProvider(demoWallet.publicKey);
+    const provider = await demoClient!.getProvider(demoWallet!.publicKey);
     
     res.json({
       success: true,
       demo: {
-        wallet: demoWallet.publicKey.toBase58(),
+        wallet: demoWallet!.publicKey.toBase58(),
         balanceSOL: balance / 1e9,
         balanceLamports: balance,
         isProvider: !!provider,
@@ -89,7 +109,7 @@ router.get('/status', async (req, res) => {
 });
 
 // POST /demo/commit - Commit a signal hash on-chain
-router.post('/commit', async (req, res) => {
+router.post('/commit', requireDemoInit, async (req, res) => {
   try {
     const { token, direction, entry, takeProfit, stopLoss, timeframeHours, confidence } = req.body;
 
@@ -115,7 +135,7 @@ router.post('/commit', async (req, res) => {
     
     // Commit on-chain
     console.log(`🔐 Committing signal: ${direction} ${token} @ ${entry}...`);
-    const txSignature = await demoClient.commitSignal(Uint8Array.from(hash.bytes));
+    const txSignature = await demoClient!.commitSignal(Uint8Array.from(hash.bytes));
 
     res.json({
       success: true,
@@ -136,7 +156,7 @@ router.post('/commit', async (req, res) => {
       onChain: {
         transaction: txSignature,
         explorer: `https://solscan.io/tx/${txSignature}?cluster=devnet`,
-        wallet: demoWallet.publicKey.toBase58(),
+        wallet: demoWallet!.publicKey.toBase58(),
       },
       nextStep: 'Wait for price to move, then call POST /demo/reveal with the same signal data'
     });
@@ -155,7 +175,7 @@ router.post('/commit', async (req, res) => {
 });
 
 // POST /demo/reveal - Reveal a committed signal
-router.post('/reveal', async (req, res) => {
+router.post('/reveal', requireDemoInit, async (req, res) => {
   try {
     const { token, direction, entry, takeProfit, stopLoss, timeframeHours, confidence } = req.body;
 
@@ -184,7 +204,7 @@ router.post('/reveal', async (req, res) => {
     
     // Reveal on-chain
     console.log(`🔓 Revealing signal: ${direction} ${token} @ ${entry}...`);
-    const txSignature = await demoClient.revealSignal(signal, Uint8Array.from(hash.bytes));
+    const txSignature = await demoClient!.revealSignal(signal, Uint8Array.from(hash.bytes));
 
     res.json({
       success: true,
