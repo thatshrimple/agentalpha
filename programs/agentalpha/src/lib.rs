@@ -158,6 +158,25 @@ pub mod agentalpha {
         Ok(())
     }
 
+    /// One-time setup: create the oracle config and set the key allowed to call
+    /// `record_outcome`. Only the program's upgrade authority can call this.
+    pub fn initialize_oracle_config(ctx: Context<InitializeOracleConfig>, oracle: Pubkey) -> Result<()> {
+        let config = &mut ctx.accounts.oracle_config;
+        config.authority = ctx.accounts.authority.key();
+        config.oracle = oracle;
+        config.bump = ctx.bumps.oracle_config;
+        emit!(OracleUpdated { authority: config.authority, oracle });
+        Ok(())
+    }
+
+    /// Rotate the oracle key (config authority only).
+    pub fn set_oracle(ctx: Context<SetOracle>, oracle: Pubkey) -> Result<()> {
+        let config = &mut ctx.accounts.oracle_config;
+        config.oracle = oracle;
+        emit!(OracleUpdated { authority: config.authority, oracle });
+        Ok(())
+    }
+
     /// Record signal outcome (called by oracle)
     /// Determines if TP hit, SL hit, or expired
     pub fn record_outcome(
@@ -304,11 +323,69 @@ pub struct RecordOutcome<'info> {
     )]
     pub provider: Account<'info, Provider>,
     
-    /// Oracle authority - trusted to report outcomes
+    #[account(
+        seeds = [b"oracle-config"],
+        bump = oracle_config.bump,
+        has_one = oracle @ AgentAlphaError::UnauthorizedOracle
+    )]
+    pub oracle_config: Account<'info, OracleConfig>,
+
+    /// Oracle authority - must match `oracle_config.oracle`
     pub oracle: Signer<'info>,
 }
 
+#[derive(Accounts)]
+pub struct InitializeOracleConfig<'info> {
+    #[account(
+        init,
+        payer = authority,
+        space = OracleConfig::SIZE,
+        seeds = [b"oracle-config"],
+        bump
+    )]
+    pub oracle_config: Account<'info, OracleConfig>,
+
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
+    #[account(constraint = program.programdata_address()? == Some(program_data.key()))]
+    pub program: Program<'info, crate::program::Agentalpha>,
+
+    #[account(
+        constraint = program_data.upgrade_authority_address == Some(authority.key())
+            @ AgentAlphaError::UnauthorizedOracle
+    )]
+    pub program_data: Account<'info, ProgramData>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct SetOracle<'info> {
+    #[account(
+        mut,
+        seeds = [b"oracle-config"],
+        bump = oracle_config.bump,
+        has_one = authority @ AgentAlphaError::UnauthorizedOracle
+    )]
+    pub oracle_config: Account<'info, OracleConfig>,
+
+    pub authority: Signer<'info>,
+}
+
 // ==================== STATE ====================
+
+/// Global config naming the key allowed to record signal outcomes.
+#[account]
+pub struct OracleConfig {
+    pub authority: Pubkey, // 32
+    pub oracle: Pubkey,    // 32
+    pub bump: u8,          // 1
+}
+
+impl OracleConfig {
+    pub const SIZE: usize = 8 + 32 + 32 + 1;
+}
 
 #[account]
 pub struct Provider {
@@ -399,6 +476,12 @@ pub struct SignalRevealed {
 }
 
 #[event]
+pub struct OracleUpdated {
+    pub authority: Pubkey,
+    pub oracle: Pubkey,
+}
+
+#[event]
 pub struct OutcomeRecorded {
     pub provider: Pubkey,
     pub signal_hash: [u8; 32],
@@ -437,4 +520,6 @@ pub enum AgentAlphaError {
     HashMismatch,
     #[msg("Outcome already recorded for this signal")]
     OutcomeAlreadyRecorded,
+    #[msg("Signer is not the configured oracle or config authority")]
+    UnauthorizedOracle,
 }

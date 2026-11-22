@@ -98,6 +98,10 @@ After the timeframe expires, an oracle records:
 - **SL_HIT** → Signal wrong ❌
 - **EXPIRED** → Judged by final P/L
 
+Only the oracle key stored in the `oracle-config` PDA can call `record_outcome`.
+After deploying, the program's upgrade authority creates that config once with
+`initialize_oracle_config(oracle)` and can rotate the key later with `set_oracle(new_oracle)`.
+
 ## Signal Format
 
 ```typescript
