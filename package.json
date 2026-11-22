@@ -15,7 +15,8 @@
     "demo": "concurrently \"npm run registry\" \"npm run provider\"",
     "onchain-demo": "npx tsx examples/onchain-demo/index.ts",
     "frontend": "node frontend/server.js",
-    "test": "echo \"Tests coming soon\" && exit 0"
+    "test": "echo \"Tests coming soon\" && exit 0",
+    "test:program": "tsx --test tests/*.test.ts"
   },
   "engines": {
     "node": ">=20.0.0"
